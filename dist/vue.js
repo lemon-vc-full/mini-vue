@@ -50,90 +50,161 @@
     return typeof key === "symbol" ? key : String(key);
   }
 
-  function observe(value) {
-    // 如果value不是对象，什么都不做
-    if (_typeof(value) !== "object") return;
-    // 如果value是对象，创建Observer实例，对数据进行监控
-    return new Observer(value);
-  }
+  // 获取原来数组方法
+  var oldArrayProtoMethods = Array.prototype;
+
+  // 继承一下
+  var arrayMethods = Object.create(oldArrayProtoMethods);
+
+  // 要重写的方法
+  var methods = ["push", "shift", "unshift", "pop", "reverse", "sort", "splice"];
+  methods.forEach(function (method) {
+    arrayMethods[method] = function () {
+      var _oldArrayProtoMethods;
+      for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+        args[_key] = arguments[_key];
+      }
+      // 调用原来的方法,这里的this指向的是数组
+      var result = (_oldArrayProtoMethods = oldArrayProtoMethods[method]).call.apply(_oldArrayProtoMethods, [this].concat(args));
+      // 如果用户调用的是push、unshift、splice这三个方法，那么插入的值也有可能是对象，应该被观测
+      var inserted;
+      switch (method) {
+        // push、unshift都是追加，所以args就是插入的值
+        case "push":
+        case "unshift":
+          inserted = args;
+          break;
+        // splice(start, deleteCount, inserted) 从第三个参数开始才是插入的值
+        case "splice":
+          inserted = args.slice(2);
+          break;
+      }
+      // 获取这个数组对应的Observer实例
+      var ob = this.__ob__;
+      // 如果有插入的值，那么需要观测
+      if (inserted) {
+        ob.observeArray(inserted);
+      }
+      return result;
+    };
+  });
+
   var Observer = /*#__PURE__*/function () {
     function Observer(value) {
       _classCallCheck(this, Observer);
-      // 判断数据类型，如果是数组，调用数组的方法进行重写
+      /**
+       * 给value添加一个__ob__属性，这个属性不能被枚举，防止死循环
+       * __ob__属性的值是Observer实例，类中的this指向的就是实例
+       */
+      Object.defineProperty(value, "__ob__", {
+        value: this,
+        enumerable: false
+      });
+      // 如果是数组的话并不会对索引进行观测，因为会导致性能问题
       if (Array.isArray(value)) {
-        // 重写数组的方法
+        // 设置原型，让数组通过原型链查找的方法变成重写后的方法
         Object.setPrototypeOf(value, arrayMethods);
-        // 对数组中的每一项进行监控
+        // 遍历数组中的每一项进行递归观测
         this.observeArray(value);
       } else {
-        // 如果是对象，调用walk方法进行监控
         this.walk(value);
       }
     }
-    // 遍历对象的所有属性，依次进行监控
+    // 对象的观测，对每个属性进行观测
     _createClass(Observer, [{
       key: "walk",
-      value: function walk(obj) {
-        Object.keys(obj).forEach(function (key) {
-          defineReactive(obj, key, obj[key]);
-        });
+      value: function walk(data) {
+        var keys = Object.keys(data);
+        for (var i = 0; i < keys.length; i++) {
+          var key = keys[i];
+          var value = data[key];
+          defineReactive(data, key, value);
+        }
       }
-      // 遍历数组中的每一项，依次进行监控
+      // 数组的特殊遍历，如果是对象类型会被直接观测
     }, {
       key: "observeArray",
-      value: function observeArray(arr) {
-        arr.forEach(function (item) {
-          return observe(item);
-        });
+      value: function observeArray(value) {
+        for (var i = 0; i < value.length; i++) {
+          observe(value[i]);
+        }
       }
     }]);
     return Observer;
-  }();
-  function defineReactive(obj, key, val) {
-    // 如果val是对象，递归调用observe
-    observe(val);
-    Object.defineProperty(obj, key, {
+  }(); // 观测数据
+  function observe(data) {
+    // 如果不是对象或者数组，就不用观测了，直接返回
+    if (_typeof(data) !== "object" || data === null) {
+      return data;
+    }
+    // 如果是对象或者数组，就创建一个Observer实例
+    return new Observer(data);
+  }
+
+  // 定义响应式数据
+  function defineReactive(data, key, value) {
+    // 递归，如果value是对象的话，继续观测
+    observe(value);
+    Object.defineProperty(data, key, {
       get: function get() {
-        return val;
+        return value;
       },
-      set: function set(newVal) {
-        if (newVal === val) return;
-        // 如果newVal是对象，递归调用observe
-        observe(newVal);
-        val = newVal;
+      set: function set(newValue) {
+        if (newValue === value) return;
+        // 如果用户设置的是对象，那么继续观测
+        observe(newValue);
+        value = newValue;
+      }
+    });
+  }
+
+  function proxy(vm, source, key) {
+    Object.defineProperty(vm, key, {
+      get: function get() {
+        return vm[source][key];
+      },
+      set: function set(newValue) {
+        vm[source][key] = newValue;
       }
     });
   }
 
   function initState(vm) {
-    var opts = vm.$options;
-    if (opts.props) ;
-    if (opts.data) {
+    var ops = vm.$options;
+    // 判断
+    if (ops.props) ;
+    if (ops.data) {
       initData(vm);
     }
-    if (opts.computed) ;
-    if (opts.watch) ;
-    if (opts.methods) ;
+    if (ops.computed) ;
+    if (ops.watch) ;
+    if (ops.methods) ;
   }
   function initData(vm) {
-    // 获取用户传入的data
+    // 数据初始化
     var data = vm.$options.data;
-    // 判断data的类型，如果是函数，取函数的返回值作为对象，如果是对象，直接使用
-    data = vm._data = typeof data === "function" ? data.call(vm) : data || {};
-    // 监控数据
+    // 判断data是不是函数
+    // 这里的initData是一个普通函数，不是Vue实例或原型链的方法，所以这里的this指向是undefined
+    data = vm._data = typeof data === "function" ? data.call(vm) : data;
+    // 将data中的数据全部代理到vm实例上
+    for (var key in data) {
+      proxy(vm, "_data", key);
+    }
+    // 数据代理
     observe(data);
   }
 
   function initMixin(Vue) {
     Vue.prototype._init = function (options) {
-      let vm = this;
-      vm.$options = options; // 将用户传入的options参数挂载到vm上
+      var vm = this;
+      vm.$options = options;
       // 初始化状态
       initState(vm);
     };
   }
 
   function Vue(options) {
+    // 初始化
     this._init(options);
   }
   initMixin(Vue);

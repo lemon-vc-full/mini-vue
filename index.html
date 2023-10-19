@@ -1,37 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="./dist/vue.js"></script>
-    <title>mini-vue</title>
-</head>
-
-<body>
+    <title>Mini-Vue</title>
+  </head>
+  <body>
     <div id="app"></div>
     <script>
-        const vm = new Vue({
-            el: '#app',
-            props: {},
-            data() {
-                return {
-                    obj: {
-                        a: 1,
-                        b: 2,
-                        c: {
-                            d: 3
-                        }
-                    },
-                    list: [1, 2, 3, 4, 5]
-                }
+      const vm = new Vue({
+        el: "#app",
+        props: {},
+        // data: {
+        //   obj: {
+        //     name: "zhangsan",
+        //     age: 18,
+        //   },
+        //   arr: [1, 2, 3, 4, 5, { name: "lisi" }],
+        //   num: 100,
+        // },
+        data() {
+          return {
+            obj: {
+              name: "zhangsan",
+              age: 18,
             },
-            computed: {},
-            watch: {},
-            methods: {},
-            filters: {}
-        })
+            arr: [1, 2, 3, 4, 5, { name: "lisi" }],
+            num: 100,
+          };
+        },
+        computed: {},
+        watch: {},
+        methods: {},
+      });
     </script>
-</body>
-
+  </body>
 </html>

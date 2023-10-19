@@ -1,32 +1,39 @@
-import { observe } from "./observe/index.js";
+import { observe } from "./observer/index.js";
+import { proxy } from "./utils.js";
 
 export function initState(vm) {
-  let opts = vm.$options;
-  if (opts.props) {
+  let ops = vm.$options;
+  // 判断
+  if (ops.props) {
     initProps(vm);
   }
-  if (opts.data) {
+  if (ops.data) {
     initData(vm);
   }
-    if (opts.computed) {
-        initComputed(vm);
-    }
-    if (opts.watch) {
-        initWatch(vm);
-    }
-    if (opts.methods) {
-        initMethods(vm);
-    }
+  if (ops.computed) {
+    initComputed(vm);
+  }
+  if (ops.watch) {
+    initWatch(vm);
+  }
+  if (ops.methods) {
+    initMethods(vm);
+  }
 }
 
 function initProps(vm) {}
 
 function initData(vm) {
-  // 获取用户传入的data
+  // 数据初始化
   let data = vm.$options.data;
-  // 判断data的类型，如果是函数，取函数的返回值作为对象，如果是对象，直接使用
-  data = vm._data = typeof data === "function" ? data.call(vm) : data || {};
-  // 监控数据
+  // 判断data是不是函数
+  // 这里的initData是一个普通函数，不是Vue实例或原型链的方法，所以这里的this指向是undefined
+  data = vm._data = typeof data === "function" ? data.call(vm) : data;
+  // 将data中的数据全部代理到vm实例上
+  for (let key in data) {
+    proxy(vm, "_data", key);
+  }
+  // 数据代理
   observe(data);
 }
 
