@@ -2,21 +2,21 @@ import { observe } from "./observer/index.js";
 import { proxy } from "./utils.js";
 
 export function initState(vm) {
-  let ops = vm.$options;
+  let opts = vm.$options;
   // 判断
-  if (ops.props) {
+  if (opts.props) {
     initProps(vm);
   }
-  if (ops.data) {
+  if (opts.data) {
     initData(vm);
   }
-  if (ops.computed) {
+  if (opts.computed) {
     initComputed(vm);
   }
-  if (ops.watch) {
+  if (opts.watch) {
     initWatch(vm);
   }
-  if (ops.methods) {
+  if (opts.methods) {
     initMethods(vm);
   }
 }
@@ -27,7 +27,7 @@ function initData(vm) {
   // 数据初始化
   let data = vm.$options.data;
   // 判断data是不是函数
-  // 这里的initData是一个普通函数，不是Vue实例或原型链的方法，所以这里的this指向是undefined
+  // 这里的initData是一个普通函数，不是Vue实例或原型链的方法，所以这里的this不是指向Vue实例
   data = vm._data = typeof data === "function" ? data.call(vm) : data;
   // 将data中的数据全部代理到vm实例上
   for (let key in data) {
